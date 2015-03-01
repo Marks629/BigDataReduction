@@ -30,6 +30,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * InputFormat to implement:
  * key:"index1|index2|index3|index4..."(Text)
  * value:123.456(DoubleWritable)
+ * 
  */
 public class DataCubeReduction {
 	private String inputPath = null;
