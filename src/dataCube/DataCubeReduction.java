@@ -60,7 +60,6 @@ public class DataCubeReduction {
 	    		return false;
 	    }
 	    Job job = new Job(conf, "dataCube");
-	    job.getConfiguration().set("hehehe", "hahaha");
 	    job.setJarByClass(DataCubeReduction.class);
 	    job.setInputFormatClass(inputFormat);
 	    if(outputFormat != null)job.setOutputFormatClass(outputFormat);
