@@ -2,14 +2,14 @@ package test.dimension;
 
 import java.io.IOException;
 
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 
-public class MyRecordReader extends  RecordReader<Object, Text>{
+public class MyRecordReader extends  RecordReader<LongWritable, Text>{
 	private LineRecordReader lrr = null;
 	
 	public MyRecordReader(){
@@ -22,7 +22,7 @@ public class MyRecordReader extends  RecordReader<Object, Text>{
 	}
 
 	@Override
-	public Object getCurrentKey() throws IOException, InterruptedException {
+	public LongWritable getCurrentKey() throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		return lrr.getCurrentKey();
 	}

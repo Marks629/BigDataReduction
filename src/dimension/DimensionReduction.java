@@ -5,6 +5,8 @@ import java.util.ArrayList;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -69,10 +71,12 @@ public class DimensionReduction {
 		if (outputFormat != null)
 			job.setOutputFormatClass(outputFormat);
 		job.setMapperClass(TokenizerMapper.class);
-		job.setCombinerClass(IntSumReducer.class);
+		//job.setCombinerClass(IntSumReducer.class);
 		job.setReducerClass(IntSumReducer.class);
-		job.setOutputKeyClass(Object.class);
-		job.setOutputValueClass(Text.class);
+		job.setMapOutputKeyClass(LongWritable.class);
+		job.setMapOutputValueClass(Text.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(NullWritable.class);
 		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
@@ -88,9 +92,9 @@ public class DimensionReduction {
 	}
 
 	public static class TokenizerMapper extends
-			Mapper<Object, Text, Object, Text> {
+			Mapper<LongWritable, Text, LongWritable, Text> {
 
-		public void map(Object key, Text value, Context context)
+		public void map(LongWritable key, Text value, Context context)
 				throws IOException, InterruptedException {
 			String[] indexes = value.toString().split("\\|");// |need to be dealed
 															// specialy
@@ -109,17 +113,18 @@ public class DimensionReduction {
 			for (int i = 1; i < indexNum; ++i) {
 				res += "|" + indexes[indexToReserve.get(i)];
 			}
-			context.write(key, new Text(res));
+			context.write(key, new Text(res));//yes here is a problem
+			//context.write(key, new Text("hehe"));//not value problem
 		}
 	}
 
 	public static class IntSumReducer extends
-			Reducer<Object, Text,Object, Text> {
+			Reducer<LongWritable, Text,Text, NullWritable> {
 
-		public void reduce(Object key, Iterable<Text> values,
+		public void reduce(Text key, Iterable<Text> values,
 				Context context) throws IOException, InterruptedException {
 			for (Text val : values) {
-				context.write(key, val);
+				context.write(new Text(val.toString()+"hehe"), NullWritable.get());
 			}
 		}
 	}
