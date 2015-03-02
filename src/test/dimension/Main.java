@@ -22,7 +22,7 @@ public class Main {
 		indexes.add(1);
 		dr.setDimToReserve(indexes);
 		if(dr.run()){
-			System.out.println("succeed");
+			System.out.println("succeed to test if changed");
 			System.exit(0);
 		}else{
 			System.out.println("something is wrong, please check your code");

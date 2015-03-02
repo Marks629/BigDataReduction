@@ -119,12 +119,12 @@ public class DimensionReduction {
 	}
 
 	public static class IntSumReducer extends
-			Reducer<LongWritable, Text,Text, NullWritable> {
+			Reducer<LongWritable, Text,Text,NullWritable> {
 
-		public void reduce(Text key, Iterable<Text> values,
+		public void reduce(LongWritable key, Iterable<Text> values,
 				Context context) throws IOException, InterruptedException {
 			for (Text val : values) {
-				context.write(new Text(val.toString()+"hehe"), NullWritable.get());
+				context.write(val, NullWritable.get());
 			}
 		}
 	}
