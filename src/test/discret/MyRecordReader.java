@@ -23,14 +23,16 @@ public class MyRecordReader extends  RecordReader<DoubleWritable, DoubleWritable
 	@Override
 	public DoubleWritable getCurrentKey() throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
-		return new DoubleWritable(lrr.getCurrentKey().get());
+		String[] datas = lrr.getCurrentValue().toString().split(" ");
+		return new DoubleWritable(Double.parseDouble(datas[0]));
 	}
 
 	@Override
 	public DoubleWritable getCurrentValue() throws IOException,
 			InterruptedException {
 		// TODO Auto-generated method stub
-		return new DoubleWritable(Double.parseDouble(lrr.getCurrentValue().toString()));
+		String[] datas = lrr.getCurrentValue().toString().split(" ");
+		return new DoubleWritable(Double.parseDouble(datas[1]));
 	}
 
 	@Override

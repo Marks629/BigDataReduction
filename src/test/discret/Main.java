@@ -17,7 +17,7 @@ public class Main {
 		dr.setInputPath(args[0]);
 		dr.setOutputPath(args[1]);
 		dr.setInputFormat(MyInputFormat.class);
-		dr.setDiscretInterval(0.01);
+		dr.setDiscretInterval(0.1);
 		if(dr.run()){
 			System.out.println("succeed to test if changed");
 			System.exit(0);
