@@ -1,9 +1,10 @@
-package test.dimension;
+package test.discret;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 import dimension.DimensionReduction;
+import discret.DiscretizationReduction;
 public class Main {
 
 	public static void main(String[] args) throws ClassNotFoundException, IOException, InterruptedException {
@@ -12,14 +13,11 @@ public class Main {
 			System.out.println("need input and output paths");
 			System.exit(2);
 		}
-		DimensionReduction dr = new DimensionReduction();
+		DiscretizationReduction dr = new DiscretizationReduction();
 		dr.setInputPath(args[0]);
 		dr.setOutputPath(args[1]);
 		dr.setInputFormat(MyInputFormat.class);
-		ArrayList<Integer> indexes = new ArrayList<Integer>();
-		indexes.add(0);
-		indexes.add(1);
-		dr.setDimToReserve(indexes);
+		dr.setDiscretInterval(0.01);
 		if(dr.run()){
 			System.out.println("succeed to test if changed");
 			System.exit(0);
