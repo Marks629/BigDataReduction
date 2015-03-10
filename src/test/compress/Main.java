@@ -1,4 +1,4 @@
-package test.mapreduce;
+package test.compress;
 
 import java.io.IOException;
 import java.util.StringTokenizer;
@@ -7,20 +7,21 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.io.compress.*;
-import org.apache.hadoop.io.compress.bzip2.BZip2DummyCompressor;
-import org.apache.hadoop.io.compress.zlib.ZlibCompressor;
-public class Hello {
+
+import compress.CompressFactory;
+
+public class Main {
 
   public static class TokenizerMapper 
-       extends Mapper<Object, Text, IntWritable, Text>{
+       extends Mapper<Object, Text, Text, IntWritable>{
     
     private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();
@@ -30,21 +31,24 @@ public class Hello {
       StringTokenizer itr = new StringTokenizer(value.toString());
       while (itr.hasMoreTokens()) {
         word.set(itr.nextToken());
-        context.write(one, word);
+        context.write(word, one);
       }
     }
   }
   
   public static class IntSumReducer 
-       extends Reducer<IntWritable,Text,Text,IntWritable> {
+       extends Reducer<Text,IntWritable,Text,IntWritable> {
     private IntWritable result = new IntWritable();
 
-    public void reduce(IntWritable key, Iterable<Text> values, 
+    public void reduce(Text key, Iterable<IntWritable> values, 
                        Context context
                        ) throws IOException, InterruptedException {
-      for(Text val:values){
-    	  	context.write(val, key);
+      int sum = 0;
+      for (IntWritable val : values) {
+        sum += val.get();
       }
+      result.set(sum);
+      context.write(key, result);
     }
   }
 
@@ -56,16 +60,14 @@ public class Hello {
       System.exit(2);
     }
     Job job = new Job(conf, "word count");
-    job.setJarByClass(Hello.class);
+    job.setJarByClass(Main.class);
     job.setMapperClass(TokenizerMapper.class);
-    //job.setCombinerClass(IntSumReducer.class);
+    job.setCombinerClass(IntSumReducer.class);
     job.setReducerClass(IntSumReducer.class);
-    job.setMapOutputKeyClass(IntWritable.class);
-    job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
-    //FileOutputFormat.setCompressOutput(job, true);
-    //FileOutputFormat.setOutputCompressorClass(job,BZip2Codec.class);
+    CompressFactory.setMapCompressor(job, BZip2Codec.class);
+    CompressFactory.setReduceCompressor(job, GzipCodec.class);
     FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
     FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
     System.exit(job.waitForCompletion(true) ? 0 : 1);
