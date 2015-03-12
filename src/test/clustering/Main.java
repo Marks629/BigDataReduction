@@ -33,6 +33,7 @@ public class Main {
 			System.out.println(" 第 " + ++count + " 次计算 ");
 			if (Utils.compareCenters(centerPath, newCenterPath)) {
 				KmeanClustering.run(centerPath, dataPath, newCenterPath, false);
+				Utils.deletePath(newCenterPath);
 				break;
 			}
 		}

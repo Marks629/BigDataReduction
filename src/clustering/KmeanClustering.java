@@ -12,6 +12,7 @@ import java.util.Iterator;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -32,7 +33,7 @@ public class KmeanClustering {
 		protected void setup(Context context) throws IOException,
 				InterruptedException {
 			centers = Utils.getCentersFromHDFS(
-					context.getConfiguration().get("centersPath"), false);
+					context.getConfiguration().get("centersPath"), true);
 			k = centers.size();
 		}
 
@@ -71,7 +72,7 @@ public class KmeanClustering {
 	}
 
 	// 利用reduce的归并功能以中心为Key将记录归并到一起
-	public static class Reduce extends Reducer<IntWritable, Text, Text, Text> {
+	public static class Reduce extends Reducer<IntWritable, Text, NullWritable, Text> {
 
 		/**
 		 * 1.Key为聚类中心的ID value为该中心的记录集合 2.计数所有记录元素的平均值，求出新的中心
@@ -100,9 +101,9 @@ public class KmeanClustering {
 				avg[i] = sum / size;
 			}
 			context.write(
-					new Text(""),
+					NullWritable.get(),
 					new Text(Arrays.toString(avg).replace("[", "")
-							.replace("]", "")));
+							.replace("]", "").replace(" ", "")));
 		}
 
 	}
@@ -126,7 +127,7 @@ public class KmeanClustering {
 		if (runReduce) {
 			// 最后依次输出不许要reduce
 			job.setReducerClass(Reduce.class);
-			job.setOutputKeyClass(Text.class);
+			job.setOutputKeyClass(NullWritable.class);
 			job.setOutputValueClass(Text.class);
 		}
 

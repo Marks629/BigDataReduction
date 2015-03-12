@@ -66,7 +66,7 @@ public class Utils {
 
 	public static ArrayList<Double> textToArray(Text text) {
 		ArrayList<Double> list = new ArrayList<Double>();
-		String[] fileds = text.toString().split(",| |\\\t");
+		String[] fileds = text.toString().split(",| |\\\t|, | ,| , ");
 		for (int i = 0; i < fileds.length; i++) {
 			list.add(Double.parseDouble(fileds[i]));
 		}
@@ -76,9 +76,11 @@ public class Utils {
 	public static boolean compareCenters(String centerPath, String newPath)
 			throws IOException {
 
+		Configuration conf = new Configuration();
+		
 		List<ArrayList<Double>> oldCenters = Utils.getCentersFromHDFS(
-				centerPath, false);
-		List<ArrayList<Double>> newCenters = Utils.getCentersFromHDFS(newPath,
+				conf.get("fs.default.name")+centerPath, true);
+		List<ArrayList<Double>> newCenters = Utils.getCentersFromHDFS(conf.get("fs.default.name")+newPath,
 				true);
 
 		int size = oldCenters.size();
@@ -99,17 +101,24 @@ public class Utils {
 		} else {
 			// 先清空中心文件，将新的中心文件复制到中心文件中，再删掉中心文件
 
-			Configuration conf = new Configuration();
-			Path outPath = new Path(centerPath);
+			Path outPath = new Path(centerPath+"/centers");
 			FileSystem fileSystem = outPath.getFileSystem(conf);
 
-			FSDataOutputStream overWrite = fileSystem.create(outPath, true);
-			overWrite.writeChars("");
-			overWrite.close();
+			//FSDataOutputStream overWrite = fileSystem.create(outPath, true);
+			//overWrite.writeChars("");
+			//overWrite.close();
+			Utils.deletePath(centerPath);
 
 			Path inPath = new Path(newPath);
 			FileStatus[] listFiles = fileSystem.listStatus(inPath);
 			for (int i = 0; i < listFiles.length; i++) {
+				//skip _log and _SUCCESS
+				String path = listFiles[i].getPath().toString();
+				String tmp[] = path.split("/");
+				if(tmp[tmp.length-1].startsWith("_")){
+					continue;
+				}
+				
 				FSDataOutputStream out = fileSystem.create(outPath);
 				FSDataInputStream in = fileSystem.open(listFiles[i].getPath());
 				IOUtils.copyBytes(in, out, 4096, true);
