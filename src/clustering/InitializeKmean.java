@@ -18,9 +18,10 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class InitializeKmean {
+class InitializeKmean {
 	private String outputPath = null;
 	private String inputPath = null;
+	private Class inputFormat = null;
 	private int k = -1;
 
 	public void setInputPath(String input) {
@@ -30,16 +31,24 @@ public class InitializeKmean {
 	public void setOutputPath(String output) {
 		this.outputPath = output;
 	}
-	public void setNumberOfCenters(int k){
+
+	public void setNumberOfCenters(int k) {
 		this.k = k;
 	}
-	public boolean run() throws IOException, ClassNotFoundException, InterruptedException{
+
+	public void setInputFormat(Class format) {
+		this.inputFormat = format;
+	}
+
+	public boolean run() throws IOException, ClassNotFoundException,
+			InterruptedException {
 		Configuration conf = new Configuration();
-		if(this.inputPath == null || this.outputPath == null || this.k < 0){
+		if (this.inputPath == null || this.outputPath == null || this.k < 0
+				|| this.inputFormat == null) {
 			System.out.println("some params need to be set");
 			System.exit(-1);
 		}
-		Job job = new Job(conf,"InitializeKmean");
+		Job job = new Job(conf, "InitializeKmean");
 		job.setJarByClass(InitializeKmean.class);
 		job.setMapperClass(Map.class);
 		job.setReducerClass(Reduce.class);
@@ -50,31 +59,35 @@ public class InitializeKmean {
 		FileInputFormat.addInputPath(job, new Path(this.inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(this.outputPath));
 		boolean ret = job.waitForCompletion(true);
-		generateCenters(job.getConfiguration().get("fs.default.name") + outputPath, k);
+		generateCenters(job.getConfiguration().get("fs.default.name")
+				+ outputPath, k);
 		return ret;
 	}
-	
-	private void generateCenters(String centerPath,int k) throws IOException{
-		ArrayList<ArrayList<Double>> limits = Utils.getCentersFromHDFS(centerPath, true);
+
+	private void generateCenters(String centerPath, int k) throws IOException {
+		ArrayList<ArrayList<Double>> limits = Utils.getCentersFromHDFS(
+				centerPath, true);
 		Utils.deletePath(centerPath);
 		Random random = new Random();
 		Configuration conf = new Configuration();
-		Path outPath = new Path(centerPath+"/centers");
+		Path outPath = new Path(centerPath + "/centers");
 		FileSystem fileSystem = outPath.getFileSystem(conf);
 		FSDataOutputStream overWrite = fileSystem.create(outPath, true);
-		for(int i = 0; i < k; ++i){
+		for (int i = 0; i < k; ++i) {
 			String center = new String();
-			for(int j = 0; j < limits.size(); ++j){
-				double estimate = limits.get(j).get(0) + random.nextDouble()*(limits.get(j).get(1)-limits.get(j).get(0));
-				if(j == 0){
+			for (int j = 0; j < limits.size(); ++j) {
+				double estimate = limits.get(j).get(0) + random.nextDouble()
+						* (limits.get(j).get(1) - limits.get(j).get(0));
+				if (j == 0) {
 					center += String.valueOf(estimate);
-				}else{
+				} else {
 					center += " ";
 					center += String.valueOf(estimate);
 				}
 			}
 			center += "\n";
-			overWrite.writeUTF(center);
+			// overWrite.writeUTF(center);
+			overWrite.writeBytes(center);
 		}
 		overWrite.close();
 	}
@@ -103,11 +116,11 @@ public class InitializeKmean {
 			// TODO Auto-generated method stub
 			Double min = Double.MAX_VALUE;
 			Double max = Double.MIN_VALUE;
-			for(DoubleWritable d:values){
-				if(d.get() < min){
+			for (DoubleWritable d : values) {
+				if (d.get() < min) {
 					min = d.get();
 				}
-				if(d.get() > max){
+				if (d.get() > max) {
 					max = d.get();
 				}
 			}

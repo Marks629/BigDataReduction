@@ -14,7 +14,7 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.LineReader;
 
-public class Utils {
+class Utils {
 
 	// 读取中心文件的数据
 	public static ArrayList<ArrayList<Double>> getCentersFromHDFS(
@@ -36,10 +36,10 @@ public class Utils {
 			}
 			return result;
 		}
-		
-		//判断是否是系统默认输出的_logs and _SUCCESS
+
+		// 判断是否是系统默认输出的_logs and _SUCCESS
 		String tmp[] = centersPath.split("/");
-		if(tmp[tmp.length-1].startsWith("_")){
+		if (tmp[tmp.length - 1].startsWith("_")) {
 			return result;
 		}
 
@@ -77,11 +77,11 @@ public class Utils {
 			throws IOException {
 
 		Configuration conf = new Configuration();
-		
+
 		List<ArrayList<Double>> oldCenters = Utils.getCentersFromHDFS(
-				conf.get("fs.default.name")+centerPath, true);
-		List<ArrayList<Double>> newCenters = Utils.getCentersFromHDFS(conf.get("fs.default.name")+newPath,
-				true);
+				conf.get("fs.default.name") + centerPath, true);
+		List<ArrayList<Double>> newCenters = Utils.getCentersFromHDFS(
+				conf.get("fs.default.name") + newPath, true);
 
 		int size = oldCenters.size();
 		int fildSize = oldCenters.get(0).size();
@@ -101,24 +101,24 @@ public class Utils {
 		} else {
 			// 先清空中心文件，将新的中心文件复制到中心文件中，再删掉中心文件
 
-			Path outPath = new Path(centerPath+"/centers");
+			Path outPath = new Path(centerPath + "/centers");
 			FileSystem fileSystem = outPath.getFileSystem(conf);
 
-			//FSDataOutputStream overWrite = fileSystem.create(outPath, true);
-			//overWrite.writeChars("");
-			//overWrite.close();
+			// FSDataOutputStream overWrite = fileSystem.create(outPath, true);
+			// overWrite.writeChars("");
+			// overWrite.close();
 			Utils.deletePath(centerPath);
 
 			Path inPath = new Path(newPath);
 			FileStatus[] listFiles = fileSystem.listStatus(inPath);
 			for (int i = 0; i < listFiles.length; i++) {
-				//skip _log and _SUCCESS
+				// skip _log and _SUCCESS
 				String path = listFiles[i].getPath().toString();
 				String tmp[] = path.split("/");
-				if(tmp[tmp.length-1].startsWith("_")){
+				if (tmp[tmp.length - 1].startsWith("_")) {
 					continue;
 				}
-				
+
 				FSDataOutputStream out = fileSystem.create(outPath);
 				FSDataInputStream in = fileSystem.open(listFiles[i].getPath());
 				IOUtils.copyBytes(in, out, 4096, true);

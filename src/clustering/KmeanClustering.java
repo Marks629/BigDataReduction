@@ -2,24 +2,93 @@ package clustering;
 
 import java.io.IOException;
 import java.util.ArrayList;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-
 import java.util.Arrays;
 import java.util.Iterator;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+/*
+ * KeamnClustering implements the kmeans clustering algorithm
+ * 
+ * how to use:
+ * KmeanClustering kc = new KmeanClustering();
+ * kc.setInputPath(input);
+ * kc.setOutputPath(output);
+ * kc.setK(k);
+ * kc.setInputFormat(format);
+ * kc.run();
+ * 
+ * inputformat:
+ * key:anything(LongWritable)
+ * value:123,234,345,456,567,123(Text) //or use space to split
+ */
 public class KmeanClustering {
+	private String inputPath = null;
+	private String outputPath = null;
+	private Class inputFormat = null;
+	private int k = -1;
+	private String tmpPath = "/qewradsfzxcv413";
+
+	public void setInputPath(String input) {
+		this.inputPath = input;
+	}
+
+	public void setOutputPath(String output) {
+		this.outputPath = output;
+	}
+
+	public void setInputFormat(Class format) {
+		this.inputFormat = format;
+	}
+
+	public void setK(int k) {
+		this.k = k;
+	}
+
+	public boolean runCluster() throws ClassNotFoundException, IOException,
+			InterruptedException {
+		if (this.inputPath == null || this.outputPath == null
+				|| this.inputFormat == null || this.k < 0) {
+			System.out.println("params needed");
+			System.exit(-1);
+		}
+		// generate initial centers
+		InitializeKmean ik = new InitializeKmean();
+		ik.setInputPath(this.inputPath);
+		ik.setOutputPath(this.outputPath);
+		ik.setNumberOfCenters(this.k);
+		ik.setInputFormat(this.inputFormat);
+		ik.run();
+
+		// run kmeans
+		String centerPath = this.outputPath;
+		String dataPath = this.inputPath;
+		String newCenterPath = this.tmpPath;
+
+		int count = 0;// couters
+		while (true) {
+			KmeanClustering.run(centerPath, dataPath, newCenterPath,
+					this.inputFormat, true);
+			System.out.println("iteration " + ++count);
+			if (Utils.compareCenters(centerPath, newCenterPath)) {
+				KmeanClustering.run(centerPath, dataPath, newCenterPath,
+						this.inputFormat, false);
+				Utils.deletePath(newCenterPath);
+				break;
+			}
+		}
+		return true;
+	}
 
 	public static class Map extends
 			Mapper<LongWritable, Text, IntWritable, Text> {
@@ -72,7 +141,8 @@ public class KmeanClustering {
 	}
 
 	// 利用reduce的归并功能以中心为Key将记录归并到一起
-	public static class Reduce extends Reducer<IntWritable, Text, NullWritable, Text> {
+	public static class Reduce extends
+			Reducer<IntWritable, Text, NullWritable, Text> {
 
 		/**
 		 * 1.Key为聚类中心的ID value为该中心的记录集合 2.计数所有记录元素的平均值，求出新的中心
@@ -100,27 +170,26 @@ public class KmeanClustering {
 				}
 				avg[i] = sum / size;
 			}
-			context.write(
-					NullWritable.get(),
-					new Text(Arrays.toString(avg).replace("[", "")
-							.replace("]", "").replace(" ", "")));
+			context.write(NullWritable.get(), new Text(Arrays.toString(avg)
+					.replace("[", "").replace("]", "").replace(" ", "")));
 		}
 
 	}
 
 	@SuppressWarnings("deprecation")
 	public static void run(String centerPath, String dataPath,
-			String newCenterPath, boolean runReduce) throws IOException,
-			ClassNotFoundException, InterruptedException {
+			String newCenterPath, Class inputFormat, boolean runReduce)
+			throws IOException, ClassNotFoundException, InterruptedException {
 
 		Configuration conf = new Configuration();
-		conf.set("centersPath", conf.get("fs.default.name")+centerPath);
+		conf.set("centersPath", conf.get("fs.default.name") + centerPath);
 
 		Job job = new Job(conf, "mykmeans");
 		job.setJarByClass(KmeanClustering.class);
 
 		job.setMapperClass(Map.class);
 
+		job.setInputFormatClass(inputFormat);
 		job.setMapOutputKeyClass(IntWritable.class);
 		job.setMapOutputValueClass(Text.class);
 
@@ -131,29 +200,13 @@ public class KmeanClustering {
 			job.setOutputValueClass(Text.class);
 		}
 
-		FileInputFormat.addInputPath(job, new Path(conf.get("fs.default.name")+dataPath));
+		FileInputFormat.addInputPath(job, new Path(conf.get("fs.default.name")
+				+ dataPath));
 
-		FileOutputFormat.setOutputPath(job, new Path(conf.get("fs.default.name")+newCenterPath));
+		FileOutputFormat.setOutputPath(job,
+				new Path(conf.get("fs.default.name") + newCenterPath));
 
 		System.out.println(job.waitForCompletion(true));
-	}
-
-	public static void main(String[] args) throws ClassNotFoundException,
-			IOException, InterruptedException {
-		String centerPath = "hdfs://localhost:9000/input/centers.txt";//initial centers
-		String dataPath = "hdfs://localhost:9000/input/wine.txt";//input
-		String newCenterPath = "hdfs://localhost:9000/out/kmean";//mid centers
-
-		int count = 0;//couters
-
-		while (true) {
-			run(centerPath, dataPath, newCenterPath, true);
-			System.out.println(" 第 " + ++count + " 次计算 ");
-			if (Utils.compareCenters(centerPath, newCenterPath)) {
-				run(centerPath, dataPath, newCenterPath, false);
-				break;
-			}
-		}
 	}
 
 }
